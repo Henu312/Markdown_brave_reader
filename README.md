@@ -23,6 +23,24 @@
 - Windows 启动器：位于 `Markdown阅读器项目/发布/当前版本/md-launcher/MdLauncher.exe`
 - 完整版本记录：`Markdown阅读器项目/版本变更记录.md`
 
+## 环境要求
+
+### 普通使用
+
+- Windows 10 或更高版本（64 位）
+- Brave 或 Google Chrome 等 Chromium 浏览器
+- 浏览器允许加载未打包扩展，并开启扩展的“允许访问文件网址”权限
+- 使用当前发布目录中的 `MdLauncher.exe` 时，不需要额外安装 .NET、Node.js 或 Python；启动器为 Windows 自包含版本
+
+### 开发和构建
+
+- Windows 10/11 64 位
+- .NET 6 SDK（仅构建 Windows 启动器和分类器时需要）
+- Git（用于获取源码和提交修改）
+- Node.js（可选，仅用于执行 JavaScript 语法检查；扩展本身无需 Node.js）
+
+启动器只在本机 `127.0.0.1` 提供临时预览服务，不需要网络服务器或数据库。Markdown 文件内容和相对路径图片不会上传到外部服务。
+
 ## 安装使用
 
 ### 1. 加载扩展
