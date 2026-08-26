@@ -29,6 +29,7 @@
 
 - Windows 10 或更高版本（64 位）
 - Brave 或 Google Chrome 等 Chromium 浏览器
+- Chromium 内核 111 或更高版本（Chrome 111+；Brave 请查看 `brave://version` 中的 Chromium 版本）
 - 浏览器允许加载未打包扩展，并开启扩展的“允许访问文件网址”权限
 - 使用当前发布目录中的 `MdLauncher.exe` 时，不需要额外安装 .NET、Node.js 或 Python；启动器为 Windows 自包含版本
 
@@ -38,6 +39,8 @@
 - .NET 6 SDK（仅构建 Windows 启动器和分类器时需要）
 - Git（用于获取源码和提交修改）
 - Node.js（可选，仅用于执行 JavaScript 语法检查；扩展本身无需 Node.js）
+
+扩展使用 Manifest V3，并包含现代 CSS 样式。Chromium 111 以下版本不在正式支持范围内，可能出现样式缺失或页面显示异常。
 
 启动器只在本机 `127.0.0.1` 提供临时预览服务，不需要网络服务器或数据库。Markdown 文件内容和相对路径图片不会上传到外部服务。
 
