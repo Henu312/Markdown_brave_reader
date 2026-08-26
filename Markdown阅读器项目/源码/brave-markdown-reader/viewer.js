@@ -129,8 +129,18 @@ function renderToc(markdown) {
     return;
   }
   const baseLevel = Math.min(...entries.map(entry => entry.level));
-  tocLinks.innerHTML = entries.map(entry => `<a href="#${entry.id}" style="--toc-indent:${Math.min(entry.level - baseLevel, 4)}">${escapeHtml(entry.title)}</a>`).join('');
+  tocLinks.innerHTML = entries.map(entry => `<a href="#${entry.id}" data-target="${entry.id}" style="--toc-indent:${Math.min(entry.level - baseLevel, 4)}">${escapeHtml(entry.title)}</a>`).join('');
   tocPanel.hidden = false;
+}
+
+function jumpToHeading(event) {
+  const link = event.target.closest('a[data-target]');
+  if (!link || !tocLinks.contains(link)) return;
+  event.preventDefault();
+  const target = document.getElementById(link.dataset.target);
+  if (!target) return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  history.replaceState(null, '', `#${encodeURIComponent(link.dataset.target)}`);
 }
 
 async function showDocument(markdownDocument) {
@@ -235,6 +245,7 @@ previewToggle.addEventListener('click', () => {
 });
 saveFile.addEventListener('click', saveCopy);
 editor.addEventListener('input', updatePreview);
+tocLinks.addEventListener('click', jumpToHeading);
 document.addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && editing) {
     event.preventDefault();
