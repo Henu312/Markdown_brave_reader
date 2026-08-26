@@ -1,0 +1,11 @@
+# 根目录中的测试素材和临时文件，不属于 Markdown 阅读器项目
+/README-内嵌图片测试.md
+/风格原图.png
+/需修改图.jpg
+/原视频.mp4
+/preview.jpg
+/cropped_frames/
+/extracted_frames/
+/cropped_frames.zip
+/crop_black_borders.py
+/extract_preview.py
