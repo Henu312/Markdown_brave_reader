@@ -51,8 +51,32 @@ function inline(source) {
   return value;
 }
 
+function extractHeadings(markdown) {
+  const entries = [];
+  let inCode = false;
+  let index = 0;
+  const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
+  for (const line of lines) {
+    if (/^```/.test(line)) {
+      inCode = !inCode;
+      continue;
+    }
+    if (inCode) continue;
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (!heading) continue;
+    entries.push({
+      level: heading[1].length,
+      title: heading[2].replace(/`([^`]+)`/g, '$1').trim(),
+      id: `heading-${index}`
+    });
+    index += 1;
+  }
+  return entries;
+}
+
 function render(markdown) {
   const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
+  const headings = extractHeadings(markdown);
   const html = [];
   let paragraph = [];
   let list = null;
@@ -83,7 +107,7 @@ function render(markdown) {
     if (heading) {
       flushParagraph(); closeList();
       const level = heading[1].length;
-      html.push(`<h${level} id="heading-${headingNumber}">${inline(heading[2])}</h${level}>`);
+      html.push(`<h${level} id="${headings[headingNumber]?.id || `heading-${headingNumber}`}">${inline(heading[2])}</h${level}>`);
       headingNumber += 1;
       continue;
     }
@@ -118,11 +142,7 @@ function render(markdown) {
 }
 
 function renderToc(markdown) {
-  const entries = Array.from(markdown.replace(/\r\n?/g, '\n').matchAll(/^(#{1,6})\s+(.+)$/gm), (match, index) => ({
-    level: match[1].length,
-    title: match[2].replace(/`([^`]+)`/g, '$1').trim(),
-    id: `heading-${index}`
-  }));
+  const entries = extractHeadings(markdown);
   if (!entries.length) {
     tocPanel.hidden = true;
     tocLinks.innerHTML = '';
