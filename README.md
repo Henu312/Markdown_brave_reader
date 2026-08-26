@@ -17,7 +17,7 @@
 
 ## 当前版本
 
-产品版本：`V2.7.4`
+产品版本：`V2.7.5`
 
 - 浏览器扩展：位于 `Markdown阅读器项目/发布/当前版本/brave-markdown-reader`
 - Windows 启动器：位于 `Markdown阅读器项目/发布/当前版本/md-launcher/MdLauncher.exe`

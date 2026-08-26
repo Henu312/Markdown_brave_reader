@@ -134,13 +134,16 @@ function renderToc(markdown) {
 }
 
 function jumpToHeading(event) {
-  const link = event.target.closest('a[data-target]');
+  const link = event.target instanceof Element ? event.target.closest('a[data-target]') : null;
   if (!link || !tocLinks.contains(link)) return;
   event.preventDefault();
   const target = document.getElementById(link.dataset.target);
   if (!target) return;
-  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  history.replaceState(null, '', `#${encodeURIComponent(link.dataset.target)}`);
+  // 直接计算页面滚动位置，避免扩展页中 scrollIntoView 选错滚动容器。
+  const scrollingElement = document.scrollingElement || document.documentElement;
+  const targetTop = target.getBoundingClientRect().top + scrollingElement.scrollTop - 76;
+  scrollingElement.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+  try { history.replaceState(null, '', `#${encodeURIComponent(link.dataset.target)}`); } catch { /* 某些受限页面不允许修改地址栏，跳转本身不受影响。 */ }
 }
 
 async function showDocument(markdownDocument) {
