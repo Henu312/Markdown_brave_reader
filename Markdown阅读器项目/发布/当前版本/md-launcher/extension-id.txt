@@ -1,0 +1,2 @@
+brave=gghcmbjiokfcejiehpcldacildamehdm
+# chrome=请填写 Chrome 中加载该扩展后显示的 32 位扩展 ID

@@ -1,0 +1,20 @@
+# .NET 构建产物
+**/bin/
+**/obj/
+**/.vs/
+**/publish/
+
+# 本地 IDE 文件
+*.user
+*.suo
+
+# 大型发布文件：源码和配置保留，发布包可通过构建重新生成
+*.exe
+*.dll
+*.pdb
+*.zip
+*.7z
+
+# 临时缓存
+*.cache
+*.tmp

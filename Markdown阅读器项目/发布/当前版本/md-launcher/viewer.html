@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>__TITLE__</title>
+  <style>
+    body{margin:0;color:#20252b;background:#f6f7f9;font:16px/1.7 "Segoe UI","Microsoft YaHei",sans-serif}
+    .bar{position:sticky;top:0;padding:12px 24px;background:#fff;border-bottom:1px solid #ddd;font-weight:700}
+    .main{max-width:980px;margin:auto;padding:28px 22px 80px}h1,h2{border-bottom:1px solid #ddd;padding-bottom:.3em}
+    a{color:#1769d1}pre{padding:14px;overflow:auto;background:#eef0f3;border-radius:5px}code{background:#eef0f3;padding:2px 4px;border-radius:3px}img{max-width:100%}
+    blockquote{border-left:4px solid #ccd2d8;padding-left:14px;color:#64707c}table{border-collapse:collapse}th,td{border:1px solid #ccd2d8;padding:5px 9px}th{background:#eef0f3}
+  </style>
+</head>
+<body>
+  <div class="bar">Markdown 预览：__TITLE__</div>
+  <main id="main" class="main">读取中...</main>
+  <script>
+    const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const inline=s=>{let v=esc(s);v=v.replace(/`([^`]+)`/g,'<code>$1</code>');v=v.replace(/!\[([^\]]*)\]\(([^ )]+)\)/g,(_,a,u)=>/^data:image\//i.test(u)?'<img src="'+u+'" alt="'+a+'">':'<img src="/asset?path='+encodeURIComponent(u)+'" alt="'+a+'">');v=v.replace(/\[([^\]]+)\]\(([^ )]+)\)/g,(_,a,u)=>'<a href="'+(/^https?:/i.test(u)?u:'/asset?path='+encodeURIComponent(u))+'">'+a+'</a>');v=v.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');v=v.replace(/\*([^*]+)\*/g,'<em>$1</em>');return v};
+    function render(md){let out=[],p=[],code=false,c=[];const flush=()=>{if(p.length)out.push('<p>'+inline(p.join(' '))+'</p>');p=[]};for(const line of md.replace(/\r\n?/g,'\n').split('\n')){if(/^```/.test(line)){flush();if(code)out.push('<pre><code>'+esc(c.join('\n'))+'</code></pre>');code=!code;c=[];continue}if(code){c.push(line);continue}if(!line.trim()){flush();continue}let h=line.match(/^(#{1,6})\s+(.+)/);if(h){flush();let n=h[1].length;out.push('<h'+n+'>'+inline(h[2])+'</h'+n+'>');continue}let q=line.match(/^>\s?(.*)/);if(q){flush();out.push('<blockquote>'+inline(q[1])+'</blockquote>');continue}let li=line.match(/^\s*[-+*]\s+(.+)/);if(li){flush();out.push('<li>'+inline(li[1])+'</li>');continue}p.push(line.trim())}flush();return out.join('\n')}
+    fetch('/content').then(r=>r.text()).then(t=>document.querySelector('#main').innerHTML=render(t)).catch(e=>document.querySelector('#main').textContent='读取失败：'+e);
+  </script>
+</body>
+</html>

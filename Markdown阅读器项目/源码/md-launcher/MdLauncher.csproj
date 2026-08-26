@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="viewer.html" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="extension-id.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="browser.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
