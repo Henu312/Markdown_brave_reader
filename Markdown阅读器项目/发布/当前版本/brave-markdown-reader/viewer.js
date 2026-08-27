@@ -74,7 +74,7 @@ function extractHeadings(markdown) {
   return entries;
 }
 
-function render(markdown) {
+function render(markdown, includeHeadingIds = true) {
   const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
   const headings = extractHeadings(markdown);
   const html = [];
@@ -107,7 +107,8 @@ function render(markdown) {
     if (heading) {
       flushParagraph(); closeList();
       const level = heading[1].length;
-      html.push(`<h${level} id="${headings[headingNumber]?.id || `heading-${headingNumber}`}">${inline(heading[2])}</h${level}>`);
+      const headingId = headings[headingNumber]?.id || `heading-${headingNumber}`;
+      html.push(`<h${level}${includeHeadingIds ? ` id="${headingId}"` : ''}>${inline(heading[2])}</h${level}>`);
       headingNumber += 1;
       continue;
     }
@@ -154,15 +155,31 @@ function renderToc(markdown) {
 }
 
 function jumpToHeading(event) {
-  const link = event.target instanceof Element ? event.target.closest('a[data-target]') : null;
+  const eventNode = event.target;
+  const link = eventNode instanceof Element
+    ? eventNode.closest('a[data-target]')
+    : eventNode?.parentElement?.closest('a[data-target]');
   if (!link || !tocLinks.contains(link)) return;
   event.preventDefault();
-  const target = document.getElementById(link.dataset.target);
+  const target = Array.from(document.querySelectorAll(`[id="${link.dataset.target}"]`))
+    .find(element => element.getClientRects().length > 0);
   if (!target) return;
-  // 直接计算页面滚动位置，避免扩展页中 scrollIntoView 选错滚动容器。
-  const scrollingElement = document.scrollingElement || document.documentElement;
-  const targetTop = target.getBoundingClientRect().top + scrollingElement.scrollTop - 76;
-  scrollingElement.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+  // 选择标题所在的可滚动容器，避免隐藏的编辑预览副本抢先匹配相同 ID。
+  let container = target.parentElement;
+  while (container && container !== document.body) {
+    const style = getComputedStyle(container);
+    if (/(auto|scroll|overlay)/.test(style.overflowY) && container.scrollHeight > container.clientHeight) {
+      const top = target.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 18;
+      container.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+      break;
+    }
+    container = container.parentElement;
+  }
+  if (!container || container === document.body) {
+    const scrollingElement = document.scrollingElement || document.documentElement;
+    const targetTop = target.getBoundingClientRect().top + scrollingElement.scrollTop - 76;
+    scrollingElement.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
+  }
   try { history.replaceState(null, '', `#${encodeURIComponent(link.dataset.target)}`); } catch { /* 某些受限页面不允许修改地址栏，跳转本身不受影响。 */ }
 }
 
@@ -181,7 +198,7 @@ async function showDocument(markdownDocument) {
   window.document.title = `${markdownDocument.name} - Markdown 阅读器`;
   content.innerHTML = render(markdownDocument.text);
   editor.value = markdownDocument.text;
-  editorPreview.innerHTML = content.innerHTML;
+  editorPreview.innerHTML = render(markdownDocument.text, false);
   renderToc(markdownDocument.text);
   content.hidden = false;
   emptyState.hidden = true;
@@ -192,6 +209,7 @@ function setEditMode(enabled) {
   if (!enabled) {
     currentDocument.text = editor.value;
     content.innerHTML = render(currentDocument.text);
+    editorPreview.innerHTML = render(currentDocument.text, false);
     renderToc(currentDocument.text);
   }
   editing = enabled;
@@ -204,6 +222,7 @@ function setEditMode(enabled) {
   content.hidden = enabled || !currentDocument.text;
   tocPanel.hidden = enabled || !currentDocument.text.match(/^(#{1,6})\s+.+$/m);
   if (enabled) {
+    editorPreview.innerHTML = render(editor.value, true);
     applyPreviewVisibility();
     editor.focus();
     editorPreview.scrollTop = 0;
@@ -220,7 +239,7 @@ function applyPreviewVisibility() {
 
 function updatePreview() {
   currentDocument.text = editor.value;
-  editorPreview.innerHTML = render(editor.value);
+  editorPreview.innerHTML = render(editor.value, true);
   renderToc(editor.value);
 }
 
