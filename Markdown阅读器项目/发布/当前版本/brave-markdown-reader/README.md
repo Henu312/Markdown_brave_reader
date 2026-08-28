@@ -18,11 +18,13 @@
 
 阅读页工具栏的铅笔按钮可进入编辑模式。编辑内容会实时预览，点击保存按钮或按 `Ctrl+S` 可下载 Markdown 副本；浏览器不会默认直接覆盖原文件。
 
+编辑区输入 `<` 可显示 Markdown 语法建议；继续输入 `<image`、`<table`、`<code` 等关键词可筛选模板。使用方向键选择后按 `Enter` 或 `Tab` 插入，也可以直接点击。
+
 ## 与默认打开启动器配合
 
 若要双击 `.md` 后由本扩展渲染：
 
 1. 重新加载本扩展，确保“允许访问文件网址”已开启。
 2. 在 `brave://extensions/` 复制本扩展的 32 位 ID。
-3. 将该 ID 写入 `D:\data\reader\md-launcher\免安装版-v4\extension-id.txt`，覆盖占位文字。
-4. 将 `.md` 默认打开方式设置为 `D:\data\reader\md-launcher\免安装版-v4\MdLauncher.exe`。
+3. 将该 ID 写入当前发布目录的 `md-launcher\extension-id.txt`。
+4. 将 `.md` 默认打开方式设置为当前发布目录的 `md-launcher\MdLauncher.exe`。

@@ -29,7 +29,8 @@
         </section>
         <section id="editor-layout" class="editor-layout" hidden>
           <section class="editor-pane">
-            <textarea id="editor" class="editor" spellcheck="false" aria-label="Markdown 编辑器"></textarea>
+            <textarea id="editor" class="editor" spellcheck="false" aria-label="Markdown 编辑器" aria-autocomplete="list" aria-controls="syntax-suggestions" aria-expanded="false"></textarea>
+            <div id="syntax-suggestions" class="syntax-suggestions" role="listbox" aria-label="Markdown 语法建议" hidden></div>
           </section>
           <section id="preview-pane" class="preview-pane">
             <article id="editor-preview" class="markdown editor-preview"></article>
@@ -38,6 +39,6 @@
         <article id="content" class="markdown" hidden></article>
       </section>
     </main>
-    <script src="viewer.js?v=2.7.8"></script>
+    <script src="viewer.js?v=2.8.0"></script>
   </body>
 </html>

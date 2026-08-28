@@ -9,6 +9,7 @@ const previewToggle = document.querySelector('#preview-toggle');
 const saveFile = document.querySelector('#save-file');
 const editorLayout = document.querySelector('#editor-layout');
 const editor = document.querySelector('#editor');
+const syntaxSuggestions = document.querySelector('#syntax-suggestions');
 const previewPane = document.querySelector('#preview-pane');
 const editorPreview = document.querySelector('#editor-preview');
 const tocPanel = document.querySelector('#toc-panel');
@@ -18,6 +19,27 @@ let documentAssetBaseUrl = '';
 let currentDocument = { name: '未命名.md', text: '' };
 let editing = false;
 let previewVisible = localStorage.getItem('md-preview-visible') !== 'false';
+let syntaxMatch = null;
+let syntaxResults = [];
+let activeSyntaxIndex = 0;
+
+const syntaxTemplates = [
+  { name: '图片', keywords: ['image', 'img', '图片'], code: '![图片说明](图片路径)', text: '![图片说明](图片路径)', selectStart: 2, selectLength: 4 },
+  { name: 'HTML 图片', keywords: ['image', 'img', 'html-image', '图片'], code: '<img src="图片路径" alt="图片说明">', text: '<img src="图片路径" alt="图片说明">', selectStart: 10, selectLength: 4 },
+  { name: '链接', keywords: ['link', 'url', '链接'], code: '[链接文字](https://example.com)', text: '[链接文字](https://example.com)', selectStart: 1, selectLength: 4 },
+  { name: '一级标题', keywords: ['h1', 'heading', 'title', '标题'], code: '# 标题', text: '# 标题', selectStart: 2, selectLength: 2 },
+  { name: '二级标题', keywords: ['h2', 'heading', 'subtitle', '标题'], code: '## 标题', text: '## 标题', selectStart: 3, selectLength: 2 },
+  { name: '粗体', keywords: ['bold', 'strong', '粗体'], code: '**粗体文字**', text: '**粗体文字**', selectStart: 2, selectLength: 4 },
+  { name: '斜体', keywords: ['italic', 'em', '斜体'], code: '*斜体文字*', text: '*斜体文字*', selectStart: 1, selectLength: 4 },
+  { name: '引用', keywords: ['quote', 'blockquote', '引用'], code: '> 引用内容', text: '> 引用内容', selectStart: 2, selectLength: 4 },
+  { name: '无序列表', keywords: ['list', 'ul', '列表'], code: '- 列表项', text: '- 列表项', selectStart: 2, selectLength: 3 },
+  { name: '有序列表', keywords: ['list', 'ol', '列表'], code: '1. 列表项', text: '1. 列表项', selectStart: 3, selectLength: 3 },
+  { name: '任务列表', keywords: ['task', 'todo', 'checkbox', '任务'], code: '- [ ] 待办事项', text: '- [ ] 待办事项', selectStart: 6, selectLength: 4 },
+  { name: '行内代码', keywords: ['code', 'inline-code', '代码'], code: '`代码`', text: '`代码`', selectStart: 1, selectLength: 2 },
+  { name: '代码块', keywords: ['code', 'codeblock', '代码块'], code: '```语言  代码内容  ```', text: '```语言\n代码内容\n```', selectStart: 6, selectLength: 4 },
+  { name: '表格', keywords: ['table', '表格'], code: '| 标题 | 标题 |', text: '| 标题1 | 标题2 |\n| --- | --- |\n| 内容1 | 内容2 |', selectStart: 2, selectLength: 3 },
+  { name: '分隔线', keywords: ['hr', 'divider', '分隔线'], code: '---', text: '---', selectStart: 3, selectLength: 0 }
+];
 
 function escapeHtml(value) {
   return value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -183,6 +205,80 @@ function jumpToHeading(event) {
   try { history.replaceState(null, '', `#${encodeURIComponent(link.dataset.target)}`); } catch { /* 某些受限页面不允许修改地址栏，跳转本身不受影响。 */ }
 }
 
+function hideSyntaxSuggestions() {
+  syntaxSuggestions.hidden = true;
+  syntaxSuggestions.innerHTML = '';
+  syntaxMatch = null;
+  syntaxResults = [];
+  activeSyntaxIndex = 0;
+  editor.setAttribute('aria-expanded', 'false');
+  editor.removeAttribute('aria-activedescendant');
+}
+
+function renderSyntaxSuggestions() {
+  syntaxSuggestions.innerHTML = syntaxResults.map((template, index) => `
+    <button id="syntax-option-${index}" class="syntax-option${index === activeSyntaxIndex ? ' active' : ''}" type="button" role="option" aria-selected="${index === activeSyntaxIndex}" data-index="${index}">
+      <span class="syntax-name">${escapeHtml(template.name)}</span>
+      <span class="syntax-code">${escapeHtml(template.code)}</span>
+    </button>`).join('');
+  syntaxSuggestions.hidden = false;
+  editor.setAttribute('aria-expanded', 'true');
+  editor.setAttribute('aria-activedescendant', `syntax-option-${activeSyntaxIndex}`);
+  syntaxSuggestions.querySelector('.syntax-option.active')?.scrollIntoView({ block: 'nearest' });
+}
+
+function updateSyntaxSuggestions() {
+  if (!editing || editor.selectionStart !== editor.selectionEnd) {
+    hideSyntaxSuggestions();
+    return;
+  }
+  const beforeCaret = editor.value.slice(0, editor.selectionStart);
+  const match = beforeCaret.match(/<([a-zA-Z\u4e00-\u9fff-]*)$/);
+  if (!match) {
+    hideSyntaxSuggestions();
+    return;
+  }
+  const query = match[1].toLowerCase();
+  syntaxResults = syntaxTemplates.filter(template =>
+    !query || template.name.toLowerCase().includes(query) || template.keywords.some(keyword => keyword.startsWith(query))
+  );
+  if (!syntaxResults.length) {
+    hideSyntaxSuggestions();
+    return;
+  }
+  syntaxMatch = { start: editor.selectionStart - match[0].length, end: editor.selectionStart };
+  activeSyntaxIndex = 0;
+  renderSyntaxSuggestions();
+}
+
+function insertSyntaxTemplate(index) {
+  const template = syntaxResults[index];
+  if (!template || !syntaxMatch) return;
+  const value = editor.value;
+  editor.value = `${value.slice(0, syntaxMatch.start)}${template.text}${value.slice(syntaxMatch.end)}`;
+  const selectionStart = syntaxMatch.start + template.selectStart;
+  editor.setSelectionRange(selectionStart, selectionStart + template.selectLength);
+  hideSyntaxSuggestions();
+  editor.focus();
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function handleSyntaxKeydown(event) {
+  if (syntaxSuggestions.hidden || event.isComposing) return;
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    activeSyntaxIndex = (activeSyntaxIndex + direction + syntaxResults.length) % syntaxResults.length;
+    renderSyntaxSuggestions();
+  } else if (event.key === 'Enter' || event.key === 'Tab') {
+    event.preventDefault();
+    insertSyntaxTemplate(activeSyntaxIndex);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    hideSyntaxSuggestions();
+  }
+}
+
 async function showDocument(markdownDocument) {
   currentDocument = markdownDocument;
   editing = false;
@@ -221,6 +317,7 @@ function setEditMode(enabled) {
   editorLayout.hidden = !enabled;
   content.hidden = enabled || !currentDocument.text;
   tocPanel.hidden = enabled || !currentDocument.text.match(/^(#{1,6})\s+.+$/m);
+  if (!enabled) hideSyntaxSuggestions();
   if (enabled) {
     editorPreview.innerHTML = render(editor.value, true);
     applyPreviewVisibility();
@@ -286,7 +383,21 @@ previewToggle.addEventListener('click', () => {
   applyPreviewVisibility();
 });
 saveFile.addEventListener('click', saveCopy);
-editor.addEventListener('input', updatePreview);
+editor.addEventListener('input', () => {
+  updatePreview();
+  updateSyntaxSuggestions();
+});
+editor.addEventListener('keydown', handleSyntaxKeydown);
+editor.addEventListener('click', updateSyntaxSuggestions);
+syntaxSuggestions.addEventListener('mousedown', event => {
+  const option = event.target instanceof Element ? event.target.closest('.syntax-option') : null;
+  if (!option) return;
+  event.preventDefault();
+  insertSyntaxTemplate(Number(option.dataset.index));
+});
+document.addEventListener('mousedown', event => {
+  if (event.target !== editor && !syntaxSuggestions.contains(event.target)) hideSyntaxSuggestions();
+});
 tocLinks.addEventListener('click', jumpToHeading);
 document.addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && editing) {
