@@ -10,6 +10,7 @@
     <header class="toolbar">
       <div class="brand">Markdown 阅读器</div>
       <div id="file-name" class="file-name">未打开文件</div>
+      <span id="status" class="status" role="status" aria-live="polite"></span>
       <label class="icon-button" title="打开 Markdown 文件" aria-label="打开 Markdown 文件" for="file-input">&#128194;</label>
       <input id="file-input" type="file" accept=".md,.markdown,text/markdown,text/plain" hidden>
       <button id="edit-toggle" class="icon-button" type="button" title="编辑 Markdown" aria-label="编辑 Markdown">&#9998;</button>
@@ -39,6 +40,6 @@
         <article id="content" class="markdown" hidden></article>
       </section>
     </main>
-    <script src="viewer.js?v=2.8.0"></script>
+    <script src="viewer.js?v=2.9.0"></script>
   </body>
 </html>

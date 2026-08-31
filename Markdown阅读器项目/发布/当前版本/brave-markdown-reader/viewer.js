@@ -1,6 +1,7 @@
 const content = document.querySelector('#content');
 const emptyState = document.querySelector('#empty-state');
 const fileName = document.querySelector('#file-name');
+const status = document.querySelector('#status');
 const fileInput = document.querySelector('#file-input');
 const dropZone = document.querySelector('#drop-zone');
 const themeToggle = document.querySelector('#theme-toggle');
@@ -16,6 +17,7 @@ const tocPanel = document.querySelector('#toc-panel');
 const tocLinks = document.querySelector('#toc-links');
 let documentBaseUrl = '';
 let documentAssetBaseUrl = '';
+let documentSaveUrl = '';
 let currentDocument = { name: '未命名.md', text: '' };
 let editing = false;
 let previewVisible = localStorage.getItem('md-preview-visible') !== 'false';
@@ -287,6 +289,8 @@ async function showDocument(markdownDocument) {
   previewVisible = localStorage.getItem('md-preview-visible') !== 'false';
   applyPreviewVisibility();
   saveFile.hidden = true;
+  saveFile.title = '保存 Markdown 副本';
+  saveFile.setAttribute('aria-label', saveFile.title);
   editToggle.textContent = '\u270e';
   editToggle.title = '编辑 Markdown';
   editToggle.setAttribute('aria-label', editToggle.title);
@@ -319,6 +323,8 @@ function setEditMode(enabled) {
   tocPanel.hidden = enabled || !currentDocument.text.match(/^(#{1,6})\s+.+$/m);
   if (!enabled) hideSyntaxSuggestions();
   if (enabled) {
+    saveFile.title = documentSaveUrl ? '写回原 Markdown 文件' : '保存 Markdown 副本';
+    saveFile.setAttribute('aria-label', saveFile.title);
     editorPreview.innerHTML = render(editor.value, true);
     applyPreviewVisibility();
     editor.focus();
@@ -340,6 +346,11 @@ function updatePreview() {
   renderToc(editor.value);
 }
 
+function setStatus(message, duration = 0) {
+  status.textContent = message;
+  if (duration) setTimeout(() => { if (status.textContent === message) status.textContent = ''; }, duration);
+}
+
 function saveCopy() {
   const blob = new Blob([editor.value], { type: 'text/markdown;charset=utf-8' });
   const link = document.createElement('a');
@@ -349,10 +360,36 @@ function saveCopy() {
   URL.revokeObjectURL(link.href);
 }
 
+async function saveDocument() {
+  if (!documentSaveUrl) {
+    saveCopy();
+    setStatus('已下载副本', 2500);
+    return;
+  }
+  saveFile.disabled = true;
+  setStatus('正在保存…');
+  try {
+    const response = await fetch(documentSaveUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/markdown; charset=utf-8' },
+      body: editor.value
+    });
+    if (!response.ok) throw new Error(`保存失败（HTTP ${response.status}）`);
+    currentDocument.text = editor.value;
+    setStatus('已写回原文件', 2500);
+  } catch (error) {
+    setStatus(error.message || '写回失败，已下载副本', 3500);
+    saveCopy();
+  } finally {
+    saveFile.disabled = false;
+  }
+}
+
 async function openFile(file) {
   if (!file) return;
   documentBaseUrl = '';
   documentAssetBaseUrl = '';
+  documentSaveUrl = '';
   await showDocument({ name: file.name, text: await file.text(), updatedAt: Date.now() });
 }
 
@@ -362,6 +399,7 @@ async function openExternalFile(fileUrl) {
   if (!response.ok) throw new Error(`读取失败（HTTP ${response.status}）。`);
   const name = decodeURIComponent(new URL(fileUrl).pathname.split('/').pop() || 'Markdown 文件');
   documentBaseUrl = fileUrl;
+  documentSaveUrl = '';
   await showDocument({ name, text: await response.text(), updatedAt: Date.now() });
 }
 
@@ -371,6 +409,9 @@ async function openExternalSource(sourceUrl, assetBaseUrl) {
   if (!response.ok) throw new Error(`读取失败（HTTP ${response.status}）。`);
   documentBaseUrl = sourceUrl;
   documentAssetBaseUrl = assetBaseUrl || '';
+  const saveUrl = new URL(sourceUrl);
+  saveUrl.pathname = '/save';
+  documentSaveUrl = saveUrl.href;
   const name = new URLSearchParams(window.location.search).get('name') || 'Markdown 文件';
   await showDocument({ name, text: await response.text(), updatedAt: Date.now() });
 }
@@ -382,7 +423,7 @@ previewToggle.addEventListener('click', () => {
   localStorage.setItem('md-preview-visible', String(previewVisible));
   applyPreviewVisibility();
 });
-saveFile.addEventListener('click', saveCopy);
+saveFile.addEventListener('click', saveDocument);
 editor.addEventListener('input', () => {
   updatePreview();
   updateSyntaxSuggestions();

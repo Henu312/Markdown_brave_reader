@@ -106,6 +106,14 @@ internal static class Program
         var markdownPath = token is not null && documents.TryGetValue(token, out var selected) ? selected : null;
         try
         {
+            context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+            context.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS";
+            context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type";
+            if (request.HttpMethod.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.StatusCode = 204;
+                return;
+            }
             if (path == "/" || path == "/index.html")
             {
                 if (markdownPath is null) { context.Response.StatusCode = 404; return; }
@@ -116,6 +124,41 @@ internal static class Program
             else if (path == "/content" && markdownPath is not null)
             {
                 await Write(context.Response, await File.ReadAllTextAsync(markdownPath), "text/plain; charset=utf-8");
+            }
+            else if (path == "/save" && markdownPath is not null)
+            {
+                if (!request.HttpMethod.Equals("POST", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.StatusCode = 405;
+                    return;
+                }
+
+                if (request.ContentLength64 > 64 * 1024 * 1024)
+                {
+                    context.Response.StatusCode = 413;
+                    return;
+                }
+
+                using var reader = new StreamReader(request.InputStream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true);
+                var text = await reader.ReadToEndAsync();
+                if (text.Length > 64 * 1024 * 1024)
+                {
+                    context.Response.StatusCode = 413;
+                    return;
+                }
+
+                var temporary = $"{markdownPath}.mdreader-{Guid.NewGuid():N}.tmp";
+                try
+                {
+                    await File.WriteAllTextAsync(temporary, text, new UTF8Encoding(false));
+                    File.Move(temporary, markdownPath, overwrite: true);
+                }
+                finally
+                {
+                    if (File.Exists(temporary)) File.Delete(temporary);
+                }
+
+                await Write(context.Response, "{\"saved\":true}", "application/json; charset=utf-8");
             }
             else if (path == "/asset" && markdownPath is not null)
             {
@@ -136,6 +179,8 @@ internal static class Program
     private static async Task Write(HttpListenerResponse response, byte[] bytes, string contentType)
     {
         response.Headers["Access-Control-Allow-Origin"] = "*";
+        response.Headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS";
+        response.Headers["Access-Control-Allow-Headers"] = "Content-Type";
         response.ContentType = contentType;
         response.ContentEncoding = Encoding.UTF8;
         response.ContentLength64 = bytes.Length;

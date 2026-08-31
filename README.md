@@ -13,12 +13,12 @@
 - 编辑模式：左侧编辑、右侧实时预览
 - 可隐藏预览，让编辑区扩展为全宽
 - 编辑时输入 `<` 显示 Markdown 语法建议，支持 `<image`、`<table`、`<code` 等筛选
-- `Ctrl+S` 保存 Markdown 副本
+- 通过本地启动器打开时，编辑后点击保存或按 `Ctrl+S` 可直接写回原 Markdown 文件；普通文件选择器打开时保存为副本
 - 启动器单实例，连续打开多个 Markdown 不会重复创建启动器进程
 
 ## 当前版本
 
-产品版本：`V2.8.0`
+产品版本：`V2.9.0`
 
 - 浏览器扩展：位于 `Markdown阅读器项目/发布/当前版本/brave-markdown-reader`
 - Windows 启动器：位于 `Markdown阅读器项目/发布/当前版本/md-launcher/MdLauncher.exe`
